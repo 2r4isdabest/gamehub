@@ -1,1 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Game Hub</title>
+<style>
+  :root {
+    --bg: #1d1330;
+    --panel: #2a1d44;
+    --text: #f5efff;
+    --muted: #b7a9d6;
+    --lemon: #ffd23f;
+    --pink: #ff4f81;
+    --mint: #3ee6b0;
+    --sky: #5cc8ff;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+  header {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 48px 20px 24px;
+  }
+  h1 {
+    font-size: clamp(2.2rem, 7vw, 4rem);
+    line-height: 1.05;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+  }
+  header p { color: var(--muted); margin-top: 8px; max-width: 46ch; }
+
+  .controls {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0 20px 24px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+  }
+  .controls input {
+    flex: 1 1 220px;
+    padding: 12px 16px;
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background: var(--panel);
+    color: var(--text);
+    font-size: 1rem;
+  }
+  .controls input::placeholder { color: var(--muted); }
+  .controls input:focus { outline: none; border-color: var(--lemon); }
+  .tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+  .tabs button {
+    padding: 10px 16px;
+    border-radius: 999px;
+    border: 2px solid var(--panel);
+    background: transparent;
+    color: var(--text);
+    font: inherit;
+    cursor: pointer;
+  }
+  .tabs button:hover { border-color: var(--muted); }
+  .tabs button[aria-pressed="true"] {
+    background: var(--lemon);
+    border-color: var(--lemon);
+    color: var(--bg);
+    font-weight: 700;
+  }
+  button:focus-visible, a:focus-visible { outline: 3px solid var(--sky); outline-offset: 2px; }
+
+  main {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0 20px 64px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 20px;
+  }
+  .card {
+    background: var(--panel);
+    border-radius: 18px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+  .art {
+    height: 130px;
+    display: grid;
+    place-items: center;
+    font-size: 3.5rem;
+    background: var(--tile);
+  }
+  .info { padding: 16px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+  .info h2 { font-size: 1.2rem; }
+  .info p { color: var(--muted); font-size: 0.92rem; flex: 1; }
+  .play {
+    margin-top: 10px;
+    display: inline-block;
+    text-align: center;
+    padding: 10px;
+    border-radius: 12px;
+    background: var(--tile);
+    color: var(--bg);
+    font-weight: 800;
+    text-decoration: none;
+  }
+  .play:hover { filter: brightness(1.1); }
+  .fav {
+    position: absolute;
+    top: 10px; right: 10px;
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(29, 19, 48, 0.6);
+    color: var(--text);
+    font-size: 1.1rem;
+    cursor: pointer;
+  }
+  .fav[aria-pressed="true"] { color: var(--pink); }
+  .empty { grid-column: 1 / -1; color: var(--muted); padding: 40px 0; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .card { transition: transform 0.15s; }
+    .card:hover { transform: translateY(-4px); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Game Hub</h1>
+  <p>Pick a game and jump in. Star your favorites to find them fast.</p>
+</header>
+
+<div class="controls">
+  <input id="search" type="search" placeholder="Search games" aria-label="Search games">
+  <div class="tabs" id="tabs"></div>
+</div>
+
+<main id="grid" aria-live="polite"></main>
+
+<script>
+  // Add your own games here. Point "url" at each game's page.
+  const games = [
+    { name: "Snake",         icon: "🐍", category: "Arcade",  color: "#3ee6b0", desc: "Eat, grow, and don't hit the wall.", url: "games/snake.html" },
+    { name: "Memory Match",  icon: "🃏", category: "Puzzle",  color: "#ffd23f", desc: "Flip cards and find the pairs.",     url: "games/memory.html" },
+    { name: "Tic-Tac-Toe",   icon: "❌", category: "Classic", color: "#5cc8ff", desc: "Three in a row wins.",               url: "games/tictactoe.html" },
+    { name: "Pong",          icon: "🏓", category: "Arcade",  color: "#ff4f81", desc: "Keep the ball in play.",             url: "games/pong.html" },
+    { name: "2048",          icon: "🔢", category: "Puzzle",  color: "#ff9f43", desc: "Slide and merge tiles.",             url: "games/2048.html" },
+    { name: "Hangman",       icon: "🔤", category: "Classic", color: "#b28dff", desc: "Guess the word before time runs out.", url: "games/hangman.html" }
+  ];
+
+  const grid = document.getElementById("grid");
+  const tabs = document.getElementById("tabs");
+  const search = document.getElementById("search");
+  const favorites = new Set();
+  let category = "All";
+
+  const categories = ["All", "Favorites", ...new Set(games.map(g => g.category))];
+
+  function renderTabs() {
+    tabs.innerHTML = "";
+    categories.forEach(c => {
+      const b = document.createElement("button");
+      b.textContent = c;
+      b.setAttribute("aria-pressed", c === category);
+      b.onclick = () => { category = c; renderTabs(); renderGames(); };
+      tabs.appendChild(b);
+    });
+  }
+
+  function renderGames() {
+    const q = search.value.trim().toLowerCase();
+    const list = games.filter(g =>
+      (category === "All" ||
+       (category === "Favorites" ? favorites.has(g.name) : g.category === category)) &&
+      g.name.toLowerCase().includes(q)
+    );
+
+    grid.innerHTML = "";
+    if (!list.length) {
+      grid.innerHTML = '<p class="empty">No games found. Try a different search or category.</p>';
+      return;
+    }
+
+    list.forEach(g => {
+      const card = document.createElement("article");
+      card.className = "card";
+      card.style.setProperty("--tile", g.color);
+      card.innerHTML = `
+        <div class="art" aria-hidden="true">${g.icon}</div>
+        <div class="info">
+          <h2>${g.name}</h2>
+          <p>${g.desc}</p>
+          <a class="play" href="${g.url}">Play ${g.name}</a>
+        </div>`;
+
+      const fav = document.createElement("button");
+      fav.className = "fav";
+      fav.textContent = favorites.has(g.name) ? "★" : "☆";
+      fav.setAttribute("aria-label", "Favorite " + g.name);
+      fav.setAttribute("aria-pressed", favorites.has(g.name));
+      fav.onclick = () => {
+        favorites.has(g.name) ? favorites.delete(g.name) : favorites.add(g.name);
+        renderGames();
+      };
+      card.appendChild(fav);
+      grid.appendChild(card);
+    });
+  }
+
+  search.addEventListener("input", renderGames);
+  renderTabs();
+  renderGames();
+</script>
+</body>
+</html>
 
